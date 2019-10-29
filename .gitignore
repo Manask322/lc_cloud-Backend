@@ -1,2 +1,5 @@
 .idea/
 ccproject/
+venv
+**/__pycache__
+**/.*
