@@ -124,16 +124,16 @@ def login(request):
 
 def signup(request):
     try:
-        user_details = json.loads(request.POST['user_details'])
+        user_details = json.loads(request.body)['user_details']
         if User.objects.filter(username=user_details['username']).exists():
             return JsonResponse({"message": "User with username={} already exists".
                                 format(user_details['username'])}, status=400)
         User(username=user_details['username'], password=user_details['password'],
-             name=user_details['name'], email=user_details['email'],
-             dob=parse_date(user_details["dob"]), sex=user_details["sex"]).save()
+             email=user_details['email']).save()
         return JsonResponse({"message": "Successfully signed up"}, status=200)
     except KeyError:
         return JsonResponse({"message": "Incomplete data"}, status=400)
+
 
 
 
