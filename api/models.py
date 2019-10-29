@@ -37,3 +37,15 @@ class Instance(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Slave(models.Model):
+    id = models.AutoField(primary_key=True, unique=True)
+    name = models.CharField(max_length=255)
+    IP = models.TextField()
+    URL = models.TextField()
+    RAM = models.IntegerField(null=False)
+    CPU = models.IntegerField(null=False)
+
+    def __str__(self):
+        return self.name

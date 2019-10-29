@@ -129,7 +129,7 @@ def signup(request):
             return JsonResponse({"message": "User with username={} already exists".
                                 format(user_details['username'])}, status=400)
         User(username=user_details['username'], password=user_details['password'],
-             email=user_details['email']).save()
+             first_name=user_details['name'], email=user_details['email']).save()
         return JsonResponse({"message": "Successfully signed up"}, status=200)
     except KeyError:
         return JsonResponse({"message": "Incomplete data"}, status=400)
