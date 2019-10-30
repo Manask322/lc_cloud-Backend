@@ -40,44 +40,42 @@ def start_instance(request):
     """
     request = json.loads(request.body.decode('UTF-8'))
     try:
-        user = User.objects.get(username=request["username"])
+        user = User.objects.get(username=request['username'])
         slaves = Slave.objects.all()
-
+        image = Image.objects.get(id=request["image"])
         # Write a decide function to choose slave.
+        slave = slaves[0]
 
         new_instance = Instance(slave_id=1212, user=user)
+        new_instance.status = 'CR'
+        new_instance.name = request['name']
+        new_instance.RAM = request['memory']
+        new_instance.CPU = request['cpu']
         new_instance.save()
 
         slave_response = req.post('http://localhost:8001/lc_slave/start_instance/',
                                   data=json.dumps({
                                       'instance_id': new_instance.id,
-                                      'image': '1',
-                                      'cpu': 123,
-                                      'memory': 212
+                                      'image': image.actual_name,
+                                      'cpu': request['cpu'],
+                                      'memory': request['memory']
                                   }),
                                   headers={
                                       'content-type': 'application/json'
                                   })
 
         # slave_response = req.get('http://localhost:8001/lc_slave/start_instance/{}'.format(1))
-        # slave_response = slave_response.json()
+        slave_response = slave_response.json()
+
+        new_instance.IP = slave.IP
+        new_instance.ssh_port = slave_response['ssh_port']
+        new_instance.status = 'RU'
+        new_instance.save()
 
     except KeyError:
         return JsonResponse({"message": "Instance Details not correct."}, status=400)
     except User.DoesNotExist:
         return JsonResponse({"message": "requested user does not exists."}, status=400)
-
-    n_instance = Instance(
-        user=user,
-        name=request["name"],
-        IP=request["IP"],
-        URL=request["URL"],
-        RAM=request["RAM"],
-        CPU=request["CPU"],
-        ports=request["ports"],
-        status="RU"
-    )
-    n_instance.save()
 
     return JsonResponse({"message": "Instance stated successfully"}, status=200)
 
