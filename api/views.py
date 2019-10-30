@@ -31,6 +31,23 @@ def instance_detail(request, pk):
     return JsonResponse({"instance": instance}, status=200)
 
 
+def decide(slaves, cpu, memory):
+    max_free_memory = -1
+    candidate_slave = None
+    for slave in slaves:
+        if slave.cpu_remaining < cpu:
+            continue
+        url = "http://{}/lc_slave/get_system_resource/".format(slave.URL)
+        slave_system_resource = req.get(url).json()
+        host_ram = slave_system_resource['host_ram']
+        docker_ram = slave_system_resource['docker_ram']
+        total_ram = slave_system_resource['total_memory']
+        free_memory = total_ram - (host_ram - docker_ram + slave.memory_used)
+        if free_memory >= memory and free_memory > max_free_memory:
+            candidate_slave = slave
+    return candidate_slave
+
+
 def start_instance(request):
     """
     Starts a Instance
@@ -44,16 +61,18 @@ def start_instance(request):
         slaves = Slave.objects.all()
         image = Image.objects.get(id=request["image"])
         # Write a decide function to choose slave.
-        slave = slaves[0]
+        slave = decide(slaves, request['cpu'], request['memory'])
+        if slave is None:
+            return JsonResponse({"message": "No resources left to run instance"}, status=500)
 
-        new_instance = Instance(slave_id=1212, user=user)
+        new_instance = Instance(slave_id=slave.id, user=user)
         new_instance.status = 'CR'
         new_instance.name = request['name']
         new_instance.RAM = request['memory']
         new_instance.CPU = request['cpu']
         new_instance.save()
 
-        slave_response = req.post('http://localhost:8001/lc_slave/start_instance/',
+        slave_response = req.post('http://{}}/lc_slave/start_instance/'.format(slave.URL),
                                   data=json.dumps({
                                       'instance_id': new_instance.id,
                                       'image': image.actual_name,
@@ -68,9 +87,14 @@ def start_instance(request):
         slave_response = slave_response.json()
 
         new_instance.IP = slave.IP
+        new_instance.slave_id = slave.id
         new_instance.ssh_port = slave_response['ssh_port']
         new_instance.status = 'RU'
         new_instance.save()
+
+        slave.cpu_remaining -= request['cpu']
+        slave.memory_used += request['memory']
+        slave.save()
 
     except KeyError:
         return JsonResponse({"message": "Instance Details not correct."}, status=400)
@@ -89,6 +113,7 @@ def stop_instance(request, pk):
     """
     try:
         instance = Instance.objects.get(pk=pk)
+        slave = Slave.objects.get(pk=instance.slave_id)
         slave_response = req.post('http://localhost:8001/lc_slave/start_instance/',
                                   data=json.dumps({
                                       'instance_id': 'manas',
@@ -101,6 +126,9 @@ def stop_instance(request, pk):
                                   })
         slave_response = req.get('http://localhost:8001/lc_slave/start_instance/1')
         slave_response = slave_response.json()
+        slave.cpu_remaining += instance.CPU
+        slave.memory_used -= instance.memory_used
+        slave.save()
 
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=200)

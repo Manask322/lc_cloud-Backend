@@ -47,6 +47,8 @@ class Slave(models.Model):
     URL = models.TextField()
     RAM = models.IntegerField(null=False)
     CPU = models.IntegerField(null=False)
+    cpu_remaining = models.IntegerField(default=CPU)
+    memory_used = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
