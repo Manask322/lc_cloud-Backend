@@ -124,7 +124,7 @@ def login(request):
 
 def signup(request):
     try:
-        user_details = json.loads(request.body)['user_details']
+        user_details = json.loads(request.POST['user_details'])
         if User.objects.filter(username=user_details['username']).exists():
             return JsonResponse({"message": "User with username={} already exists".
                                 format(user_details['username'])}, status=400)
