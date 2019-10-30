@@ -1,17 +1,9 @@
-# from django.core.serializers import get_serializer
-# from django.shortcuts import render
-# from rest_framework import generics, permissions
-
+import requests as req
 import json
-from django.utils.dateparse import parse_date
 from django.http import JsonResponse
 from api.serializers import *
-from api.models import Image, Instance
-from rest_framework.decorators import api_view
+from api.models import Image, Instance, Slave
 from django.contrib.auth.models import User
-
-
-# Create your views here.
 
 
 def list_of_instances(request, username):
@@ -49,6 +41,21 @@ def start_instance(request):
     request = json.loads(request.body.decode('UTF-8'))
     try:
         user = User.objects.get(username=request["username"])
+        slaves = Slave.objects.all()
+
+        # Write a decide function to choose slave.
+        req.post('http://localhost:8001/lc_slave/get_system_resource/',
+                 data=json.dumps({
+                     'name': 'manas',
+                     'roll': '1'
+                 }),
+                 headers={
+                     'content-type': 'application/json'
+                 })
+
+        slave_response = req.get('http://localhost:8001/lc_slave/start_instance/{}'.format(1))
+        slave_response = slave_response.json()
+
     except KeyError:
         return JsonResponse({"message": "Instance Details not correct."}, status=200)
     except User.DoesNotExist:
@@ -78,6 +85,10 @@ def stop_instance(request, pk):
     """
     try:
         instance = Instance.objects.get(pk=pk)
+
+        slave_response = req.get('http://localhost:8001/lc_slave/start_instance/1')
+        slave_response = slave_response.json()
+
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=200)
     return JsonResponse({"message": "Instance Stopped successfully"}, status=200)
@@ -118,8 +129,8 @@ def login(request):
         return JsonResponse({"message": "Incomplete data"}, status=200)
     except User.DoesNotExist:
         return JsonResponse({"message": "Invalid username"}, status=200)
-    # if user.password != password:
-        # return JsonResponse({"message": "Invalid password"}, status=400)
+    if user.password != password:
+        return JsonResponse({"message": "Invalid password"}, status=400)
     return JsonResponse({"message": "Successfully logged in"}, status=200)
 
 
@@ -136,41 +147,3 @@ def signup(request):
     except KeyError:
         return JsonResponse({"message": "Incomplete data"}, status=200)
 
-
-
-
-
-
-
-# class RegistrationAPI(generics.GenericAPIView):
-#     serializer_class = CreateUserSerializer
-#
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.get_serializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.save()
-#         return Response({
-#             "user": UserSerializer(user, context=self.get_serializer_context()).data,
-#             "token": AuthToken.objects.create(user)
-#         })
-#
-#
-# class LoginAPI(generics.GenericAPIView):
-#     serializer_class = LoginUserSerializer
-#
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.get_serializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.validated_data
-#         return Response({
-#             "user": UserSerializer(user, context=self.get_serializer_context()).data,
-#             "token": AuthToken.objects.create(user)[1]
-#         })
-#
-#
-# class UserAPI(generics.RetrieveAPIView):
-#     permission_classes = [permissions.IsAuthenticated, ]
-#     serializer_class = UserSerializer
-#
-#     def get_object(self):
-#         return self.request.user

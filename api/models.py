@@ -17,13 +17,15 @@ class Image(models.Model):
 
 class Instance(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
+    slave_id = models.IntegerField(null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, null=False)
     IP = models.TextField()
     URL = models.TextField()
     RAM = models.IntegerField(null=False)
     CPU = models.IntegerField(null=False)
-    ports = models.IntegerField(null=False)
+    ports = models.TextField()
+    ssh_port = models.IntegerField()
     status = models.CharField(
         max_length=2,
         choices=[
