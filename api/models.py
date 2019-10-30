@@ -16,25 +16,24 @@ class Image(models.Model):
 
 
 class Instance(models.Model):
-    id = models.AutoField(primary_key=True, unique=True)
-    slave_id = models.IntegerField(null=False)
+    id = models.AutoField(primary_key=True)
+    slave_id = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255, null=False)
+    name = models.CharField(max_length=255)
     IP = models.TextField()
     URL = models.TextField()
-    RAM = models.IntegerField(null=False)
-    CPU = models.IntegerField(null=False)
+    RAM = models.IntegerField(null=True)
+    CPU = models.IntegerField(null=True)
     ports = models.TextField()
-    ssh_port = models.IntegerField()
+    ssh_port = models.IntegerField(null=True)
     status = models.CharField(
         max_length=2,
         choices=[
-            ('ID', 'Idle'),
-            ('ST', 'Started'),
+            ('CR', 'Created'),
             ('RU', "Running"),
             ('SP', 'Stopped'),
         ],
-        default='ID',
+        default='CR',
     )
 
     def __str__(self):

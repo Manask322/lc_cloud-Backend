@@ -44,24 +44,30 @@ def start_instance(request):
         slaves = Slave.objects.all()
 
         # Write a decide function to choose slave.
-        req.post('http://localhost:8001/lc_slave/get_system_resource/',
-                 data=json.dumps({
-                     'name': 'manas',
-                     'roll': '1'
-                 }),
-                 headers={
-                     'content-type': 'application/json'
-                 })
 
-        slave_response = req.get('http://localhost:8001/lc_slave/start_instance/{}'.format(1))
-        slave_response = slave_response.json()
+        new_instance = Instance(slave_id=1212, user=user)
+        new_instance.save()
+
+        slave_response = req.post('http://localhost:8001/lc_slave/start_instance/',
+                                  data=json.dumps({
+                                      'instance_id': new_instance.id,
+                                      'image': '1',
+                                      'cpu': 123,
+                                      'memory': 212
+                                  }),
+                                  headers={
+                                      'content-type': 'application/json'
+                                  })
+
+        # slave_response = req.get('http://localhost:8001/lc_slave/start_instance/{}'.format(1))
+        # slave_response = slave_response.json()
 
     except KeyError:
-        return JsonResponse({"message": "Instance Details not correct."}, status=200)
+        return JsonResponse({"message": "Instance Details not correct."}, status=400)
     except User.DoesNotExist:
-        return JsonResponse({"message": "requested user does not exists."}, status=200)
+        return JsonResponse({"message": "requested user does not exists."}, status=400)
 
-    new_instance = Instance(
+    n_instance = Instance(
         user=user,
         name=request["name"],
         IP=request["IP"],
@@ -71,7 +77,7 @@ def start_instance(request):
         ports=request["ports"],
         status="RU"
     )
-    new_instance.save()
+    n_instance.save()
 
     return JsonResponse({"message": "Instance stated successfully"}, status=200)
 
@@ -85,7 +91,16 @@ def stop_instance(request, pk):
     """
     try:
         instance = Instance.objects.get(pk=pk)
-
+        slave_response = req.post('http://localhost:8001/lc_slave/start_instance/',
+                                  data=json.dumps({
+                                      'instance_id': 'manas',
+                                      'image': '1',
+                                      'cpu': 123,
+                                      'memory': 212
+                                  }),
+                                  headers={
+                                      'content-type': 'application/json'
+                                  })
         slave_response = req.get('http://localhost:8001/lc_slave/start_instance/1')
         slave_response = slave_response.json()
 
@@ -146,4 +161,3 @@ def signup(request):
         return JsonResponse({"message": "Successfully signed up"}, status=200)
     except KeyError:
         return JsonResponse({"message": "Incomplete data"}, status=200)
-
