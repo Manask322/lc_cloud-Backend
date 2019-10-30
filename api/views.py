@@ -25,16 +25,16 @@ def list_of_instances(request, username):
             instance = instances_to_dict(instance)
             return JsonResponse({"instances": instance}, status=200)
         except Instance.DoesNotExist:
-            return JsonResponse({"message": "Instances for username = {} does not exists".format(username)}, status=400)
+            return JsonResponse({"message": "Instances for username = {} does not exists".format(username)}, status=200)
     except User.DoesNotExist:
-        return JsonResponse({"message": "User Name {} does not exits".format(username)}, status=400)
+        return JsonResponse({"message": "User Name {} does not exits".format(username)}, status=200)
 
 
 def instance_detail(request, pk):
     try:
         instance = Instance.objects.get(pk=pk)
     except Instance.DoesNotExist:
-        return JsonResponse({"message": "Instance detail not found for Id= {} .".format(pk)}, status=400)
+        return JsonResponse({"message": "Instance detail not found for Id= {} .".format(pk)}, status=200)
     instance = instance_to_dict(instance)
     return JsonResponse({"instance": instance}, status=200)
 
@@ -46,13 +46,13 @@ def start_instance(request):
     :param pk:
     :return:
     """
+    request = json.loads(request.body.decode('UTF-8'))
     try:
-        instance = request.POST["instance"]
-        user = User.objects.get(username=instance["username"])
+        user = User.objects.get(username=request["username"])
     except KeyError:
-        return JsonResponse({"message": "Instance Details not correct."}, status=400)
+        return JsonResponse({"message": "Instance Details not correct."}, status=200)
     except User.DoesNotExist:
-        return JsonResponse({"message": "requested user does not exists."}, status=400)
+        return JsonResponse({"message": "requested user does not exists."}, status=200)
 
     new_instance = Instance(
         user=user,
@@ -79,7 +79,7 @@ def stop_instance(request, pk):
     try:
         instance = Instance.objects.get(pk=pk)
     except Instance.DoesNotExist:
-        return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=400)
+        return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=200)
     return JsonResponse({"message": "Instance Stopped successfully"}, status=200)
 
 
@@ -104,35 +104,37 @@ def resource_monitor(request, pk):
     try:
         current_instance = Instance.objects.get(pk=pk)
     except Instance.DoesNotExist:
-        return JsonResponse({"message": "Instance does not exists for given ID"}, status=400)
+        return JsonResponse({"message": "Instance does not exists for given ID"}, status=200)
     return JsonResponse({"message": "Returns resource usage", "instance": current_instance}, status=200)
 
 
 def login(request):
+    request = json.loads(request.body.decode('UTF-8'))
     try:
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request['username']
+        password = request['password']
         user = User.objects.get(username=username)
     except KeyError:
-        return JsonResponse({"message": "Incomplete data"}, status=400)
+        return JsonResponse({"message": "Incomplete data"}, status=200)
     except User.DoesNotExist:
-        return JsonResponse({"message": "Invalid username"}, status=400)
-    if user.password != password:
-        return JsonResponse({"message": "Invalid password"}, status=400)
+        return JsonResponse({"message": "Invalid username"}, status=200)
+    # if user.password != password:
+        # return JsonResponse({"message": "Invalid password"}, status=400)
     return JsonResponse({"message": "Successfully logged in"}, status=200)
 
 
 def signup(request):
+    request = json.loads(request.body.decode('UTF-8'))
     try:
-        user_details = json.loads(request.POST['user_details'])
+        user_details = request
         if User.objects.filter(username=user_details['username']).exists():
             return JsonResponse({"message": "User with username={} already exists".
-                                format(user_details['username'])}, status=400)
+                                format(user_details['username'])}, status=200)
         User(username=user_details['username'], password=user_details['password'],
              first_name=user_details['name'], email=user_details['email']).save()
         return JsonResponse({"message": "Successfully signed up"}, status=200)
     except KeyError:
-        return JsonResponse({"message": "Incomplete data"}, status=400)
+        return JsonResponse({"message": "Incomplete data"}, status=200)
 
 
 
