@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import int_list_validator
 
 # Create your models here.
 
