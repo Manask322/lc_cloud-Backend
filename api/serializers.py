@@ -1,12 +1,11 @@
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 
 
 def user_to_dict(user):
     user_detail = {
         "id": user.id,
         "username": user.username,
+        "email": user.email,
+        "name": user.first_name
     }
     return user_detail
 
@@ -15,6 +14,7 @@ def instance_to_dict(instance):
 
     instance_detail = {
         "id": instance.id,
+        "slave_id": instance.slave_id,
         "user": user_to_dict(instance.user),
         "name": instance.name,
         "IP": instance.IP,
@@ -22,6 +22,7 @@ def instance_to_dict(instance):
         "RAM": instance.RAM,
         "CPU_usage": instance.CPU,
         "ports": instance.ports,
+        "ssh_port": instance.ssh_port,
         "status": instance.status,
     }
     return instance_detail
@@ -31,17 +32,7 @@ def instances_to_dict(instances):
     instance_detail = []
 
     for instance in instances:
-        instance_detail.append({
-            "id": instance.id,
-            "user": user_to_dict(instance.user),
-            "name": instance.name,
-            "IP": instance.IP,
-            "URL": instance.URL,
-            "RAM": instance.RAM,
-            "CPU_usage": instance.CPU,
-            "ports": instance.ports,
-            "status": instance.status,
-        })
+        instance_detail.append(instance_to_dict(instance))
 
     return instance_detail
 
@@ -59,31 +50,20 @@ def image_to_dict(images):
 
     return image_detail
 
-# class CreateUserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = ('id', 'username', 'password')
-#         extra_kwargs = {'password': {'write_only': True}}
-#
-#     def create(self, validated_data):
-#         user = User.objects.create_user(validated_data['username'],
-#                                         None,
-#                                         validated_data['password'])
-#         return user
-#
-#
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = ('id', 'username')
-#
-#
-# class LoginUserSerializer(serializers.Serializer):
-#     username = serializers.CharField()
-#     password = serializers.CharField()
-#
-#     def validate(self, data):
-#         user = authenticate(**data)
-#         if user and user.is_active:
-#             return user
-#         raise serializers.ValidationError("Unable to log in with provided credentials.")
+
+def slave_to_dict(slaves):
+    slave_detail = []
+
+    for slave in slaves:
+        slave_detail.append({
+            "id": slave.id,
+            "name": slave.name,
+            "IP": slave.IP,
+            "URL": slave.URL,
+            "RAM": slave.RAM,
+            "CPU": slave.CPU,
+            "cpu_remaining": slave.cpu_remaining,
+            "memory_used": slave.memory_used
+        })
+
+    return slave_detail
