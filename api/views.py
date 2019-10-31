@@ -192,6 +192,20 @@ def resource_monitor(request, pk):
         }, status=200)
 
 
+def profile(request, username):
+    """
+    :param username:
+    :param request:
+    :return: user details
+    """
+    try:
+        user = User.objects.get(username=username)
+        user = user_to_dict(user)
+    except User.DoesNotExist:
+        return JsonResponse({"message": "User details with username = {} not found.".format(username)}, status=400)
+    return JsonResponse({"message": "User details found", "user": user}, status=200)
+
+
 def login(request):
     request = json.loads(request.body.decode('UTF-8'))
     try:
