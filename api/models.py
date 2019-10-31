@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import int_list_validator
 
 # Create your models here.
 
@@ -16,23 +15,24 @@ class Image(models.Model):
 
 
 class Instance(models.Model):
-    id = models.AutoField(primary_key=True, unique=True)
+    id = models.AutoField(primary_key=True)
+    slave_id = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255, null=False)
+    name = models.CharField(max_length=255)
     IP = models.TextField()
     URL = models.TextField()
-    RAM = models.IntegerField(null=False)
-    CPU = models.IntegerField(null=False)
-    ports = models.IntegerField(null=False)
+    RAM = models.IntegerField(null=True)
+    CPU = models.IntegerField(null=True)
+    ports = models.TextField()
+    ssh_port = models.IntegerField(null=True)
     status = models.CharField(
         max_length=2,
         choices=[
-            ('ID', 'Idle'),
-            ('ST', 'Started'),
+            ('CR', 'Created'),
             ('RU', "Running"),
             ('SP', 'Stopped'),
         ],
-        default='ID',
+        default='CR',
     )
 
     def __str__(self):
@@ -46,6 +46,8 @@ class Slave(models.Model):
     URL = models.TextField()
     RAM = models.IntegerField(null=False)
     CPU = models.IntegerField(null=False)
+    cpu_remaining = models.IntegerField(default=CPU)
+    memory_used = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
