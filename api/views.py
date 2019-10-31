@@ -21,7 +21,7 @@ def list_of_instances(request, username):
         except Instance.DoesNotExist:
             return JsonResponse({"message": "Instances for username = {} does not exists".format(username)}, status=400)
     except User.DoesNotExist:
-        return JsonResponse({"message": "User Name {} does not exits".format(username)}, status=200)
+        return JsonResponse({"message": "Username {} does not exits".format(username)}, status=400)
 
 
 def instance_detail(request, pk):
@@ -124,7 +124,6 @@ def start_instance(request):
         return JsonResponse({"message": "Instance Details not correct."}, status=400)
     except User.DoesNotExist:
         return JsonResponse({"message": "requested user does not exists."}, status=400)
-
     return JsonResponse({"message": "Instance stated successfully"}, status=200)
 
 
@@ -213,9 +212,9 @@ def login(request):
         password = request['password']
         user = User.objects.get(username=username)
     except KeyError:
-        return JsonResponse({"message": "Incomplete data"}, status=200)
+        return JsonResponse({"message": "Incomplete data"}, status=400)
     except User.DoesNotExist:
-        return JsonResponse({"message": "Invalid username"}, status=200)
+        return JsonResponse({"message": "Invalid username"}, status=400)
     if user.password != password:
         return JsonResponse({"message": "Invalid password"}, status=400)
     return JsonResponse({"message": "Successfully logged in"}, status=200)
@@ -227,7 +226,7 @@ def signup(request):
         user_details = request
         if User.objects.filter(username=user_details['username']).exists():
             return JsonResponse({"message": "User with username={} already exists".
-                                format(user_details['username'])}, status=200)
+                                format(user_details['username'])}, status=400)
         User(username=user_details['username'], password=user_details['password'],
              first_name=user_details['name'], email=user_details['email']).save()
         return JsonResponse({"message": "Successfully signed up"}, status=200)
