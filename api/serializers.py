@@ -15,12 +15,17 @@ def instance_to_dict(instance):
     instance_detail = {
         "id": instance.id,
         "slave_id": instance.slave_id,
+        "image": {
+            "image_name": instance.image.image_name,
+            "actual_name": instance.image.actual_name,
+            "description": instance.image.description
+        },
         "user": user_to_dict(instance.user),
         "name": instance.name,
         "IP": instance.IP,
         "URL": instance.URL,
         "RAM": instance.RAM,
-        "CPU_usage": instance.CPU,
+        "cpu": instance.CPU,
         "ports": instance.ports,
         "ssh_port": instance.ssh_port,
         "status": instance.status,
@@ -35,6 +40,7 @@ def instances_to_dict(instances):
         instance_detail.append(instance_to_dict(instance))
 
     return instance_detail
+
 
 
 def image_to_dict(images):

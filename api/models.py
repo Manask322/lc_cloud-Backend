@@ -16,6 +16,7 @@ class Image(models.Model):
 
 class Instance(models.Model):
     id = models.AutoField(primary_key=True)
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
     slave_id = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)

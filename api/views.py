@@ -33,6 +33,7 @@ def instance_detail(request, pk):
 
     try:
         instance = Instance.objects.get(pk=pk)
+
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance detail not found for Id= {} .".format(pk)}, status=400)
     instance = instance_to_dict(instance)
@@ -66,8 +67,10 @@ def decide(slaves, cpu, memory):
         docker_ram = slave_system_resource['docker_ram']
         total_ram = slave_system_resource['total_ram']
         free_memory = total_ram - (host_ram - docker_ram + slave.memory_used)
+        print("Slave: {}\tFree Memory: {}\tSlave memory_used: {}".format(slave.name, free_memory, slave.memory_used))
         if free_memory >= memory and free_memory > max_free_memory:
             candidate_slave = slave
+            max_free_memory = free_memory
     return candidate_slave
 
 
@@ -99,6 +102,7 @@ def start_instance(request):
         new_instance.name = request['name']
         new_instance.RAM = int(request['memory'])
         new_instance.CPU = int(request['cpu'])
+        new_instance.image = image
         new_instance.save()
 
         slave_response = req.post('http://{}/lc_slave/start_instance/'.format(slave.URL),
@@ -159,13 +163,13 @@ def stop_instance(request, pk):
                                       'content-type': 'application/json'
                                   })
 
-        if slave_response.status_code == 400:
-            return JsonResponse({"message": "Instance not found"}, status=400)
+        if slave_response.status_code != 200:
+            return JsonResponse({"message": "Instance not found"}, status=500)
         slave_response = slave_response.json()
         slave.cpu_remaining += instance.CPU
-        slave.memory_used -= instance.memory_used
+        slave.memory_used -= instance.RAM
         slave.save()
-
+        instance.delete()
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=400)
     return JsonResponse({"message": slave_response['message']}, status=200)
@@ -193,7 +197,7 @@ def resource_monitor(request, pk):
         current_instance = Instance.objects.get(pk=pk)
         slave = Slave.objects.get(id=current_instance.slave_id)
         url = slave.URL
-        slave_response = req.get('http://{}/get_instance_resource/{}'.format(url, current_instance.id))
+        slave_response = req.get('http://{}/lc_slave/get_instance_resource/{}'.format(url, current_instance.id))
         if slave_response.status_code == 500:
             return JsonResponse({"message": "Slave running the instance gave Error"}, status=500)
     except Instance.DoesNotExist:
