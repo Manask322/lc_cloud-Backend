@@ -14,7 +14,7 @@ def instance_to_dict(instance):
 
     instance_detail = {
         "id": instance.id,
-        "slave_id": instance.slave_id,
+        "subordinate_id": instance.subordinate_id,
         "image": {
             "image_name": instance.image.image_name,
             "actual_name": instance.image.actual_name,
@@ -57,19 +57,19 @@ def image_to_dict(images):
     return image_detail
 
 
-def slave_to_dict(slaves):
-    slave_detail = []
+def subordinate_to_dict(subordinates):
+    subordinate_detail = []
 
-    for slave in slaves:
-        slave_detail.append({
-            "id": slave.id,
-            "name": slave.name,
-            "IP": slave.IP,
-            "URL": slave.URL,
-            "RAM": slave.RAM,
-            "CPU": slave.CPU,
-            "cpu_remaining": slave.cpu_remaining,
-            "memory_used": slave.memory_used
+    for subordinate in subordinates:
+        subordinate_detail.append({
+            "id": subordinate.id,
+            "name": subordinate.name,
+            "IP": subordinate.IP,
+            "URL": subordinate.URL,
+            "RAM": subordinate.RAM,
+            "CPU": subordinate.CPU,
+            "cpu_remaining": subordinate.cpu_remaining,
+            "memory_used": subordinate.memory_used
         })
 
-    return slave_detail
+    return subordinate_detail
