@@ -17,7 +17,7 @@ class Image(models.Model):
 class Instance(models.Model):
     id = models.AutoField(primary_key=True)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
-    slave_id = models.IntegerField(null=True)
+    subordinate_id = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     IP = models.TextField()
@@ -40,7 +40,7 @@ class Instance(models.Model):
         return self.name
 
 
-class Slave(models.Model):
+class Subordinate(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     name = models.CharField(max_length=255)
     IP = models.TextField()

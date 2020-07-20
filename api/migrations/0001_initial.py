@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='Slave',
+            name='Subordinate',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False, unique=True)),
                 ('name', models.CharField(max_length=255)),
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
             name='Instance',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('slave_id', models.IntegerField(null=True)),
+                ('subordinate_id', models.IntegerField(null=True)),
                 ('name', models.CharField(max_length=255)),
                 ('IP', models.TextField()),
                 ('URL', models.TextField()),

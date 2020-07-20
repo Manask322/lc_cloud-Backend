@@ -2,11 +2,11 @@ import requests as req
 import json
 from django.http import JsonResponse
 from api.serializers import *
-from api.models import Image, Instance, Slave
+from api.models import Image, Instance, Subordinate
 from django.contrib.auth.models import User
 
 
-# slave_response = req.get('http://localhost:8001/lc_slave/start_instance/1')
+# subordinate_response = req.get('http://localhost:8001/lc_subordinate/start_instance/1')
 
 def list_of_instances(request, username):
     """
@@ -40,38 +40,38 @@ def instance_detail(request, pk):
     return JsonResponse({"instance": instance}, status=200)
 
 
-def decide(slaves, cpu, memory):
+def decide(subordinates, cpu, memory):
     """
-    :param slaves:
+    :param subordinates:
     :param cpu:
     :param memory:
-    :return: returns a slave node to run a instance
+    :return: returns a subordinate node to run a instance
     """
     max_free_memory = -1
-    candidate_slave = None
-    for slave in slaves:
-        if slave.cpu_remaining < cpu:
+    candidate_subordinate = None
+    for subordinate in subordinates:
+        if subordinate.cpu_remaining < cpu:
             continue
-        url = "http://{}/lc_slave/get_system_resource/".format(slave.URL)
-        slave_system_resource = req.get(url)
-        # if slave_system_resource.status_code == 500:
-        #     if slave_system_resource.json()['message'] == "Internal Server Error":
+        url = "http://{}/lc_subordinate/get_system_resource/".format(subordinate.URL)
+        subordinate_system_resource = req.get(url)
+        # if subordinate_system_resource.status_code == 500:
+        #     if subordinate_system_resource.json()['message'] == "Internal Server Error":
         #         return -1
-        #     elif slave_system_resource.json()['message'] == "RAM not numeric":
+        #     elif subordinate_system_resource.json()['message'] == "RAM not numeric":
         #         return -2
-        if slave_system_resource.status_code == 500:
+        if subordinate_system_resource.status_code == 500:
             continue
-        slave_system_resource = slave_system_resource.json()
-        print(slave_system_resource)
-        host_ram = slave_system_resource['host_ram']
-        docker_ram = slave_system_resource['docker_ram']
-        total_ram = slave_system_resource['total_ram']
-        free_memory = total_ram - (host_ram - docker_ram + slave.memory_used)
-        print("Slave: {}\tFree Memory: {}\tSlave memory_used: {}".format(slave.name, free_memory, slave.memory_used))
+        subordinate_system_resource = subordinate_system_resource.json()
+        print(subordinate_system_resource)
+        host_ram = subordinate_system_resource['host_ram']
+        docker_ram = subordinate_system_resource['docker_ram']
+        total_ram = subordinate_system_resource['total_ram']
+        free_memory = total_ram - (host_ram - docker_ram + subordinate.memory_used)
+        print("Subordinate: {}\tFree Memory: {}\tSubordinate memory_used: {}".format(subordinate.name, free_memory, subordinate.memory_used))
         if free_memory >= memory and free_memory > max_free_memory:
-            candidate_slave = slave
+            candidate_subordinate = subordinate
             max_free_memory = free_memory
-    return candidate_slave
+    return candidate_subordinate
 
 
 def start_instance(request):
@@ -84,20 +84,20 @@ def start_instance(request):
     request = json.loads(request.body.decode('UTF-8'))
     try:
         user = User.objects.get(username=request['username'])
-        slaves = Slave.objects.all()
+        subordinates = Subordinate.objects.all()
         image = Image.objects.get(id=request["image"])
-        # Write a decide function to choose slave.
+        # Write a decide function to choose subordinate.
         print(request)
-        slave = decide(slaves, request['cpu'], request['memory'])
-        print(slave)
-        if slave is None:
+        subordinate = decide(subordinates, request['cpu'], request['memory'])
+        print(subordinate)
+        if subordinate is None:
             return JsonResponse({"message": "No resources left to run instance"}, status=500)
-        # elif slave == -1:
+        # elif subordinate == -1:
         #     return JsonResponse({"message": "Internal Server Error"}, status=500)
-        # elif slave == -2:
+        # elif subordinate == -2:
         #     return JsonResponse({"message": "RAM not numeric"}, status=500)
 
-        new_instance = Instance(slave_id=slave.id, user=user)
+        new_instance = Instance(subordinate_id=subordinate.id, user=user)
         new_instance.status = 'CR'
         new_instance.name = request['name']
         new_instance.RAM = int(request['memory'])
@@ -105,7 +105,7 @@ def start_instance(request):
         new_instance.image = image
         new_instance.save()
 
-        slave_response = req.post('http://{}/lc_slave/start_instance/'.format(slave.URL),
+        subordinate_response = req.post('http://{}/lc_subordinate/start_instance/'.format(subordinate.URL),
                                   data=json.dumps({
                                       'instance_id': new_instance.id,
                                       'image': image.actual_name,
@@ -116,27 +116,27 @@ def start_instance(request):
                                       'content-type': 'application/json'
                                   })
 
-        # slave_response = req.get('http://localhost:8001/lc_slave/start_instance/{}'.format(1))
-        print(slave_response)
-        if slave_response.status_code != 200:
+        # subordinate_response = req.get('http://localhost:8001/lc_subordinate/start_instance/{}'.format(1))
+        print(subordinate_response)
+        if subordinate_response.status_code != 200:
             new_instance.delete()
-            return JsonResponse({"message": "Slave response not correct"}, status=500)
-        slave_response = slave_response.json()
-        # print(slave_response)
+            return JsonResponse({"message": "Subordinate response not correct"}, status=500)
+        subordinate_response = subordinate_response.json()
+        # print(subordinate_response)
         try:
-            slave_ssh = int(slave_response['ssh_port'])
+            subordinate_ssh = int(subordinate_response['ssh_port'])
         except KeyError:
             new_instance.delete()
-            return JsonResponse({"message": "Slave Response not correct"}, status=500)
-        new_instance.IP = slave.IP
-        new_instance.slave_id = slave.id
-        new_instance.ssh_port = slave_ssh
+            return JsonResponse({"message": "Subordinate Response not correct"}, status=500)
+        new_instance.IP = subordinate.IP
+        new_instance.subordinate_id = subordinate.id
+        new_instance.ssh_port = subordinate_ssh
         new_instance.status = 'RU'
         new_instance.save()
 
-        slave.cpu_remaining -= request['cpu']
-        slave.memory_used += request['memory']
-        slave.save()
+        subordinate.cpu_remaining -= request['cpu']
+        subordinate.memory_used += request['memory']
+        subordinate.save()
 
     except KeyError:
         return JsonResponse({"message": "Instance Details not correct."}, status=400)
@@ -154,8 +154,8 @@ def stop_instance(request, pk):
     """
     try:
         instance = Instance.objects.get(pk=pk)
-        slave = Slave.objects.get(pk=instance.slave_id)
-        slave_response = req.post('http://{}/lc_slave/stop_instance/'.format(slave.URL),
+        subordinate = Subordinate.objects.get(pk=instance.subordinate_id)
+        subordinate_response = req.post('http://{}/lc_subordinate/stop_instance/'.format(subordinate.URL),
                                   data=json.dumps({
                                       'instance_id': instance.id,
                                   }),
@@ -163,16 +163,16 @@ def stop_instance(request, pk):
                                       'content-type': 'application/json'
                                   })
 
-        if slave_response.status_code != 200:
+        if subordinate_response.status_code != 200:
             return JsonResponse({"message": "Instance not found"}, status=500)
-        slave_response = slave_response.json()
-        slave.cpu_remaining += instance.CPU
-        slave.memory_used -= instance.RAM
-        slave.save()
+        subordinate_response = subordinate_response.json()
+        subordinate.cpu_remaining += instance.CPU
+        subordinate.memory_used -= instance.RAM
+        subordinate.save()
         instance.delete()
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance for requested ID= {} does not exists.".format(pk)}, status=400)
-    return JsonResponse({"message": slave_response['message']}, status=200)
+    return JsonResponse({"message": subordinate_response['message']}, status=200)
 
 
 def list_of_images(request):
@@ -195,18 +195,18 @@ def resource_monitor(request, pk):
     """
     try:
         current_instance = Instance.objects.get(pk=pk)
-        slave = Slave.objects.get(id=current_instance.slave_id)
-        url = slave.URL
-        slave_response = req.get('http://{}/lc_slave/get_instance_resource/{}'.format(url, current_instance.id))
-        if slave_response.status_code == 500:
-            return JsonResponse({"message": "Slave running the instance gave Error"}, status=500)
+        subordinate = Subordinate.objects.get(id=current_instance.subordinate_id)
+        url = subordinate.URL
+        subordinate_response = req.get('http://{}/lc_subordinate/get_instance_resource/{}'.format(url, current_instance.id))
+        if subordinate_response.status_code == 500:
+            return JsonResponse({"message": "Subordinate running the instance gave Error"}, status=500)
     except Instance.DoesNotExist:
         return JsonResponse({"message": "Instance does not exists for given ID"}, status=200)
     return JsonResponse(
         {
             "message": "Returns resource usage",
-            "memory": slave_response.json()['memory'],
-            "cpu": slave_response.json()['cpu']
+            "memory": subordinate_response.json()['memory'],
+            "cpu": subordinate_response.json()['cpu']
         }, status=200)
 
 
